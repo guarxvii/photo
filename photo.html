@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Scatto automatico con consenso</title>
+</head>
+<body>
+  <h2>Attendere... scatto in corso</h2>
+  <video id="video" autoplay playsinline style="display: none;"></video>
+  <canvas id="canvas" width="320" height="240" style="display: none;"></canvas>
+  <img id="preview" alt="Foto scattata" />
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d');
+    const preview = document.getElementById('preview');
+
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+
+        // Aspetta che il video inizi
+        video.onloadedmetadata = () => {
+          setTimeout(() => {
+            scattaFoto();
+            // Ferma la webcam dopo lo scatto
+            stream.getTracks().forEach(track => track.stop());
+          }, 1500); // Attendi 1,5 secondi prima dello scatto
+        };
+      } catch (err) {
+        alert('Accesso alla fotocamera negato.');
+        console.error(err);
+      }
+    }
+
+    function scattaFoto() {
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = canvas.toDataURL('image/png');
+      preview.src = imageData; // Mostra la foto
+
+      // Invia al server
+      fetch('/upload-foto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ foto: imageData })
+      })
+      .then(res => res.ok ? alert('Foto inviata!') : alert('Errore invio foto.'))
+      .catch(err => console.error('Errore:', err));
+    }
+
+    startCamera();
+  </script>
+</body>
+</html>
