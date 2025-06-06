@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Scatta, Salva e Invia</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 20px; }
+    video, canvas { max-width: 100%; margin: 10px auto; display: block; }
+    button { padding: 10px 20px; font-size: 16px; margin: 10px; }
+  </style>
+</head>
+<body>
+
+  <h1>📸 Scatta, Salva e Invia una Foto</h1>
+  <video id="video" autoplay playsinline></video>
+  <br>
+  <button id="snap">Scatta foto</button>
+  <button id="save" disabled>💾 Salva</button>
+  <button id="upload" disabled>🚀 Invia al server</button>
+  <canvas id="canvas" style="display:none;"></canvas>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const snapButton = document.getElementById('snap');
+    const saveButton = document.getElementById('save');
+    const uploadButton = document.getElementById('upload');
+
+    let photoBlob = null;
+
+    // 1. Attiva webcam
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+      })
+      .catch(err => {
+        alert("Errore accesso fotocamera: " + err.message);
+      });
+
+    // 2. Scatta foto
+    snapButton.addEventListener('click', () => {
+      canvas.style.display = 'block';
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Converte canvas in blob
+      canvas.toBlob(blob => {
+        photoBlob = blob;
+        saveButton.disabled = false;
+        uploadButton.disabled = false;
+      }, 'image/jpeg');
+    });
+
+    // 3. Salva localmente
+    saveButton.addEventListener('click', () => {
+      if (!photoBlob) return;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(photoBlob);
+      a.download = 'scatto.jpg';
+      a.click();
+    });
+
+    // 4. Invia a server
+    uploadButton.addEventListener('click', () => {
+      if (!photoBlob) return;
+
+      const formData = new FormData();
+      formData.append('foto', photoBlob, 'foto.jpg');
+
+      fetch('https://tuoserver.com/upload', {  // 🔁 CAMBIA QUESTO LINK
+        method: 'POST',
+        body: formData
+      })
+      .then(res => res.ok ? alert('✅ Foto inviata con successo!') : Promise.reject(res))
+      .catch(err => alert('❌ Errore invio foto: ' + err));
+    });
+  </script>
+
+</body>
+</html>
